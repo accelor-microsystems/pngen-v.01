@@ -4,9 +4,11 @@ import User from "../../../models/user";
 import bcrypt from 'bcrypt'
 import { cookies } from 'next/headers'
 
-export async function POST(req) {
+export async function GET(req) {
     connectMongoDB();
-    const { username, password } = await req.json();
+    const { searchParams } = new URL(req.url)
+    const username = searchParams.get('username')
+    const password = searchParams.get('password')
 
     const res = await User.findOne({ username: username })
     console.log(res)
@@ -16,10 +18,13 @@ export async function POST(req) {
         const match = await bcrypt.compare(password, res.password);
         if (match) {
             cookies().set('name', res.name, { secure: true })
-            return NextResponse.json({ message: "user exist" }, { status: 200 })
+            return NextResponse.json({ message: 200 }, { status: 200 })
         }
         else
-            return NextResponse.json({ message: "wrong password" }, { status: 404 })
+            return NextResponse.json({ message: 401 })
+    }
+    else {
+        return NextResponse.json({ message: 404 })
     }
 
 }
