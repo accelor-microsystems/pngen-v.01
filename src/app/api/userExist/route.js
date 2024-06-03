@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import connectMongoDB from "../../../lib/mongodb";
-import User from "../../../models/user";
+import connectMongoDB from "@/lib/mongodb";
+import User from "@/models/user";
 import bcrypt from 'bcrypt'
 import { cookies } from 'next/headers'
 
