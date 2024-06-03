@@ -6,7 +6,10 @@ const MpnSchema = new Schema(
         make: String,
         category: String,
         subcategory: String,
+        description: String,
+        partialPartNumber: Number,
         partNumber: Number,
+
     },
     {
         timestamps: true,
