@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectMongoDB from "@/lib/mongodb";
-import MPN from "../../../models/mpn";
+import MPN from "@/models/mpn";
 
 export async function POST(request) {
     connectMongoDB();
