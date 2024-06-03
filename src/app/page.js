@@ -26,6 +26,7 @@ export default function Home() {
   const [choosenSubcategory, setChoosenSubcategory] = useState('')
 
   const [loggedIn, setLoggedIn] = useState(false)
+  const [description, setDescription] = useState('')
 
 
   var subcatDigits = 2;
@@ -67,14 +68,14 @@ export default function Home() {
     }
   }
 
-  const fetchSubcatDigits = async (categoryToFind) => {
+  const fetchSubcatDigits = async (categoryToFind, subcategoryToFind) => {
     try {
       const res = await axios.get('/api/category/');
       var data = res.data;
-      const w = data.find(cat => cat.category === categoryToFind)
-      const num = data.find(cat => cat.category === categoryToFind && cat.subcategory === choosenSubcategory)
+      // const w = data.find(cat => cat.category === categoryToFind)
+      const num = data.find(cat => cat.category === categoryToFind && cat.subcategory === subcategoryToFind)
       console.log(num)
-      subcatDigits = w.subcatDigits
+      // subcatDigits = w.subcatDigits
       categoryNumber = num.categoryNumber
       subcategoryNumber = num.subcatNumber
 
@@ -87,11 +88,11 @@ export default function Home() {
 
 
   const handleGenerate = async () => {
-    if (choosenCategory && choosenSubcategory) {
+    if (choosenCategory && choosenSubcategory && description) {
 
 
       try {
-        await fetchSubcatDigits(choosenCategory)
+        await fetchSubcatDigits(choosenCategory, choosenSubcategory)
 
         const res = await axios.get('/api/mpn/', {
           params: { choosenCategory, choosenSubcategory },
@@ -104,7 +105,7 @@ export default function Home() {
         }
         else {
           console.log(res.data)
-          setData(res.data)
+          // setData(res.data)
           generateNewPN(res.data.partNumber);
         }
       }
@@ -120,14 +121,20 @@ export default function Home() {
   }
 
 
-
+  function sumArray(arr) {
+    return arr.reduce((sum, current) => (sum + current), 0);
+  }
 
   const generateNewPN = (number) => {
+    console.log(number)
     var partStr = String(number)
+    partStr = partStr.toString().slice(0, 8)
+    console.log(partStr)
 
 
-    var lastDigits = number.toString().slice(-3)
 
+    var lastDigits = partStr.toString().slice(-3)
+    console.log(lastDigits)
     if (lastDigits === '999') {
       setExistString('Cannot generate new part number as maximum limit has reached')
       setExistMessage(true)
@@ -135,8 +142,28 @@ export default function Home() {
     else {
       var incrementedDigits = parseInt(lastDigits, 10) + 1;
       incrementedDigits = ("000" + incrementedDigits).slice(-3);
+      var newPartNumber = String(partStr.slice(0, -3) + incrementedDigits);
+      var npn = generateChecksum(newPartNumber)
 
-      var newPartNumber = parseInt(partStr.slice(0, -3) + incrementedDigits);
+      // for (let i = 0; i < newPartNumber.length; i++) {
+
+      //   if (i % 2 === 0) {
+      //     var n = String(newPartNumber[i] * 2)
+      //     if(n.length > 1){
+      //       var x = n[0] + n[1]
+      //       console.log()
+      //     }
+      //     // evenDig.push(newPartNumber[i] * 2)
+      //   }
+      //   else {
+      //     newPartNumber[i] * 3
+      //     // oddDig.push(newPartNumber[i] * 3)
+      //   }
+      // }
+
+
+
+
 
       // else if (subcatDigits === 3) {
       //   var lastDigits = number.toString().slice(-2)
@@ -147,11 +174,49 @@ export default function Home() {
       //   var newPartNumber = parseInt(partStr.slice(0, -2) + incrementedDigits);
 
       // }
-
-      console.log(newPartNumber)
-
-      saveNewPN(newPartNumber);
+      console.log("New Part Number:- ", npn)
+      saveNewPN(npn);
     }
+  }
+
+  const generateChecksum = (number) => {
+    var evenDig = [];
+    var oddDig = [];
+    for (let i = 0; i < number.length; i++) {
+
+      if (i % 2 === 0) {
+        var n = String(number[i] * 2)
+        if (n.length > 1) {
+          var x = parseInt(n[0]) + parseInt(n[1])
+          console.log(x)
+          evenDig.push(x)
+        }
+        else {
+          evenDig.push(number[i] * 2)
+        }
+      }
+      else {
+        var n = String(number[i] * 3)
+        if (n.length > 1) {
+          var x = parseInt(n[0]) + parseInt(n[1])
+          console.log(x)
+          oddDig.push(x)
+        }
+        else {
+          oddDig.push(number[i] * 3)
+        }
+      }
+    }
+
+    var checksum_first = sumArray(evenDig) % 10
+    var checksum_second = sumArray(oddDig) % 10
+
+    console.log(evenDig, oddDig)
+    console.log(checksum_first, checksum_second)
+
+    number = parseInt(number + checksum_first + checksum_second)
+
+    return number
   }
 
   const saveNewPN = async (number) => {
@@ -169,18 +234,18 @@ export default function Home() {
     console.log(subcatDigits, categoryNumber, subcategoryNumber)
 
     if (number === 0) {
-
-
       newPartNumber = `10${categoryNumber}0${subcategoryNumber}001`
-
+      var npn = generateChecksum(newPartNumber)
+      console.log(npn)
 
     }
 
     else {
-      newPartNumber = number
+      newPartNumber = (number.toString().slice(0, 8))
+      npn = number
     }
 
-    console.log(newPartNumber)
+    console.log(newPartNumber, npn)
 
     // if (number == 0) {
     //   newPartNumber = `1${category}${subcategory}001`
@@ -195,13 +260,17 @@ export default function Home() {
       make: make,
       category: choosenCategory,
       subcategory: choosenSubcategory,
-      partNumber: newPartNumber
+      description: description,
+      partialPartNumber: Number(newPartNumber),
+      partNumber: npn
     }
+
+    console.log(updated)
 
     const res = await axios.post('/api/mpn/', updated);
     if (res.status === 200) {
       setExistMessage(true)
-      setExistString("New part number generated: " + newPartNumber)
+      setExistString("New part number generated: " + npn)
     }
 
   }
@@ -305,6 +374,7 @@ export default function Home() {
                   />
 
                 </div>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add description" className="border border-gray-400 rounded-md py-4 px-3 w-full  outline-none resize-none" />
                 {/* <p className="text-[0.8rem] text-gray-500">Category or subcategory not listed?</p> */}
                 {/* <button onClick={openCategoryWindow} className=" bg-purple-900 px-3 py-2 text-white rounded-md">Add new category</button> */}
               </div>
