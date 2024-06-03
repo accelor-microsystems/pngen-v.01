@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import connectMongoDB from "../../../libs/mongodb";
+import connectMongoDB from "../../../lib/mongodb";
 import MPN from "../../../models/mpn";
 
 export async function POST(request) {
     connectMongoDB();
-    const { mpn, make, category, subcategory, partNumber } = await request.json();
-    console.log(mpn, make, category, subcategory, partNumber)
+    const { mpn, make, category, subcategory, description, partialPartNumber, partNumber } = await request.json();
+    console.log(mpn, make, category, subcategory, partialPartNumber, partNumber)
     try {
 
-        await MPN.create({ mpn, make, category, subcategory, partNumber })
+        await MPN.create({ mpn: mpn, make: make, category: category, subcategory: subcategory, description: description, partialPartNumber: partialPartNumber, partNumber: partNumber })
         return NextResponse.json({ message: "MPN ADDED" }, { status: 200 })
     }
     catch (err) {
@@ -32,8 +32,7 @@ export async function GET(request) {
         }
 
         if (category && subcategory) {
-            const doc = await MPN.findOne({ "category": category, "subcategory": subcategory }).sort({ partNumber: -1 })
-
+            const doc = await MPN.findOne({ "category": category, "subcategory": subcategory }).sort({ partialPartNumber: -1 })
             return NextResponse.json(doc, { status: 200 })
         }
         return NextResponse.json({ message: "nothing" })
